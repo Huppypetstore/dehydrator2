@@ -85,6 +85,10 @@ def create_value_distribution_chart(df: pd.DataFrame, category: str, value_colum
         )
         st.plotly_chart(fig, use_container_width=True)
 
+def get_numeric_columns(df: pd.DataFrame) -> List[str]:
+    """Get list of numeric columns from dataframe."""
+    return df.select_dtypes(include=['float64', 'int64']).columns.tolist()
+
 def main():
     st.set_page_config(page_title="顧客情報分析", layout="wide")
     st.title("顧客情報分析システム")
@@ -132,25 +136,40 @@ def main():
 
             # Section 3: Value Distribution Analysis
             st.header("3. 数値分布分析")
-            col3, col4 = st.columns(2)
             
-            with col3:
-                if '汚泥濃度TS%' in df.columns:
-                    st.subheader("汚泥濃度TS%の分布")
-                    category_for_ts = st.selectbox(
-                        "分類を選択 (汚泥濃度TS%)",
-                        ['業種大分類', '業種中分類']
+            # Get numeric columns
+            numeric_columns = get_numeric_columns(df)
+            
+            if numeric_columns:
+                col3, col4 = st.columns(2)
+                
+                with col3:
+                    selected_value_column1 = st.selectbox(
+                        "分析する数値列を選択 (1)",
+                        options=numeric_columns,
+                        key="value_column1"
                     )
-                    create_value_distribution_chart(filtered_df, category_for_ts, '汚泥濃度TS%')
+                    category_for_value1 = st.selectbox(
+                        "分類を選択",
+                        ['業種大分類', '業種中分類'],
+                        key="category1"
+                    )
+                    create_value_distribution_chart(filtered_df, category_for_value1, selected_value_column1)
 
-            with col4:
-                if '脱水ケーキ含水率％' in df.columns:
-                    st.subheader("脱水ケーキ含水率％の分布")
-                    category_for_moisture = st.selectbox(
-                        "分類を選択 (脱水ケーキ含水率％)",
-                        ['業種大分類', '業種中分類']
+                with col4:
+                    selected_value_column2 = st.selectbox(
+                        "分析する数値列を選択 (2)",
+                        options=numeric_columns,
+                        key="value_column2"
                     )
-                    create_value_distribution_chart(filtered_df, category_for_moisture, '脱水ケーキ含水率％')
+                    category_for_value2 = st.selectbox(
+                        "分類を選択",
+                        ['業種大分類', '業種中分類'],
+                        key="category2"
+                    )
+                    create_value_distribution_chart(filtered_df, category_for_value2, selected_value_column2)
+            else:
+                st.warning("数値データを含む列が見つかりませんでした。")
 
             # Display filtered data
             st.header("フィルター後のデータ")
