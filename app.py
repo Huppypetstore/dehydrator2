@@ -70,20 +70,58 @@ def create_category_chart(df: pd.DataFrame, category: str) -> None:
         st.plotly_chart(fig, use_container_width=True)
 
 def create_value_distribution_chart(df: pd.DataFrame, category: str, value_column: str) -> None:
-    """Create and display a box plot for value distribution by category."""
+    """Create and display a detailed distribution chart combining violin and box plots."""
     if df is not None and not df.empty and value_column in df.columns:
-        fig = px.box(
-            df,
-            x=category,
-            y=value_column,
-            title=f'{category}別の{value_column}分布',
-            labels={category: '', value_column: value_column}
-        )
+        # Create figure with secondary y-axis
+        fig = go.Figure()
+
+        # Add violin plot
+        fig.add_trace(go.Violin(
+            x=df[category],
+            y=df[value_column],
+            name=value_column,
+            box_visible=True,
+            meanline_visible=True,
+            points="outliers"
+        ))
+
+        # Calculate statistics for each category
+        stats = df.groupby(category)[value_column].agg(['min', 'max', 'mean', 'median']).round(2)
+        
+        # Add statistics as annotations
+        annotations = []
+        for idx, row in stats.iterrows():
+            annotation_text = (
+                f"最小値: {row['min']}<br>"
+                f"最大値: {row['max']}<br>"
+                f"平均値: {row['mean']}<br>"
+                f"中央値: {row['median']}"
+            )
+            annotations.append(dict(
+                x=idx,
+                y=row['max'],
+                text=annotation_text,
+                showarrow=True,
+                arrowhead=4,
+                ax=0,
+                ay=-40
+            ))
+
         fig.update_layout(
+            title=f'{category}別の{value_column}分布',
+            xaxis_title='',
+            yaxis_title=value_column,
             xaxis_tickangle=-45,
-            height=500
+            height=600,
+            showlegend=False,
+            annotations=annotations
         )
+
         st.plotly_chart(fig, use_container_width=True)
+
+        # Display statistics table
+        st.write("### 統計情報")
+        st.dataframe(stats.style.format("{:.2f}"))
 
 def get_numeric_columns(df: pd.DataFrame) -> List[str]:
     """Get list of numeric columns from dataframe."""
@@ -143,18 +181,23 @@ def main():
             if numeric_columns:
                 col3, col4 = st.columns(2)
                 
+                # Determine which category to use based on selections
+                category_to_use = None
+                if selected_sub_categories:
+                    category_to_use = '業種中分類'
+                elif selected_main_categories:
+                    category_to_use = '業種大分類'
+                
                 with col3:
                     selected_value_column1 = st.selectbox(
                         "分析する数値列を選択 (1)",
                         options=numeric_columns,
                         key="value_column1"
                     )
-                    category_for_value1 = st.selectbox(
-                        "分類を選択",
-                        ['業種大分類', '業種中分類'],
-                        key="category1"
-                    )
-                    create_value_distribution_chart(filtered_df, category_for_value1, selected_value_column1)
+                    if category_to_use:
+                        create_value_distribution_chart(filtered_df, category_to_use, selected_value_column1)
+                    else:
+                        st.info("業種分類を選択してください")
 
                 with col4:
                     selected_value_column2 = st.selectbox(
@@ -162,12 +205,10 @@ def main():
                         options=numeric_columns,
                         key="value_column2"
                     )
-                    category_for_value2 = st.selectbox(
-                        "分類を選択",
-                        ['業種大分類', '業種中分類'],
-                        key="category2"
-                    )
-                    create_value_distribution_chart(filtered_df, category_for_value2, selected_value_column2)
+                    if category_to_use:
+                        create_value_distribution_chart(filtered_df, category_to_use, selected_value_column2)
+                    else:
+                        st.info("業種分類を選択してください")
             else:
                 st.warning("数値データを含む列が見つかりませんでした。")
 
