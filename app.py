@@ -33,6 +33,22 @@ def load_and_process_data(uploaded_file) -> pd.DataFrame:
         st.error(f"エラーが発生しました: {str(e)}")
         return None
 
+def create_boxplot(df: pd.DataFrame, value_col: str, category_col: str) -> None:
+    """Create and display a boxplot for the specified value column, grouped by a specified category."""
+    if df is not None and not df.empty:
+        fig = px.box(
+            df,
+            x=category_col,
+            y=value_col,
+            points="all",
+            title=f"{category_col}ごとの{value_col}の箱ひげ図"
+        )
+        fig.update_layout(
+            xaxis_tickangle=-45,
+            height=600
+        )
+        st.plotly_chart(fig, use_container_width=True)
+
 def create_summary_chart(df: pd.DataFrame, group_by: str) -> None:
     """Create and display a bar chart for the specified grouping (count)."""
     if df is not None and not df.empty:
@@ -49,23 +65,6 @@ def create_summary_chart(df: pd.DataFrame, group_by: str) -> None:
         fig.update_layout(
             xaxis_tickangle=-45,
             height=500
-        )
-        st.plotly_chart(fig, use_container_width=True)
-
-def create_boxplot(df: pd.DataFrame, value_col: str) -> None:
-    """Create and display a boxplot for the specified value column, grouped by main and sub categories."""
-    if df is not None and not df.empty:
-        fig = px.box(
-            df,
-            x="業種大分類",
-            y=value_col,
-            color="業種中分類",
-            points="all",
-            title=f"業種大分類×業種中分類ごとの{value_col}の箱ひげ図"
-        )
-        fig.update_layout(
-            xaxis_tickangle=-45,
-            height=600
         )
         st.plotly_chart(fig, use_container_width=True)
 
@@ -124,9 +123,18 @@ def main():
             # 数値分析（箱ひげ図）
             st.header("数値分析（箱ひげ図）")
             numeric_columns = filtered_df.select_dtypes(include='number').columns.tolist()
+
             if numeric_columns:
-                value_col = st.selectbox("箱ひげ図に使う数値項目を選択してください", numeric_columns)
-                create_boxplot(filtered_df, value_col)
+                # 箱ひげ図 1：業種大分類 ごと
+                st.subheader("箱ひげ図 1：業種大分類")
+                value_col_main = st.selectbox("箱ひげ図 1 に使う数値項目を選択してください", numeric_columns, key="boxplot1_value")
+                create_boxplot(filtered_df, value_col_main, "業種大分類")
+
+                # 箱ひげ図 2：業種中分類 ごと
+                st.subheader("箱ひげ図 2：業種中分類")
+                value_col_sub = st.selectbox("箱ひげ図 2 に使う数値項目を選択してください", numeric_columns, key="boxplot2_value")
+                create_boxplot(filtered_df, value_col_sub, "業種中分類")
+
             else:
                 st.warning("箱ひげ図を作成できる数値項目が見つかりません。")
 
