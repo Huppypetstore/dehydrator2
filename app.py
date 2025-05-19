@@ -143,6 +143,13 @@ def main():
             else:
                 st.warning("箱ひげ図を作成できる数値項目が見つかりません。")
 
+            # 数値データの要約統計量
+            st.header("数値データの要約統計量")
+            if numeric_columns:
+                st.dataframe(filtered_df[numeric_columns].describe())
+            else:
+                st.info("要約統計量を表示できる数値データがありません。")
+
             # フィルター後のデータ
             st.header("フィルター後のデータ")
             st.dataframe(filtered_df)
