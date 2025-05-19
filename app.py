@@ -33,14 +33,16 @@ def load_and_process_data(uploaded_file) -> pd.DataFrame:
         st.error(f"エラーが発生しました: {str(e)}")
         return None
 
-def create_boxplot(df: pd.DataFrame, value_col: str, category_col: str) -> None:
-    """Create and display a boxplot for the specified value column, grouped by a specified category."""
+def create_boxplot(df: pd.DataFrame, value_col: str, category_col: str, show_outliers: bool = True) -> None:
+    """Create and display a boxplot for the specified value column, grouped by a specified category.
+       Optionally hide outliers."""
     if df is not None and not df.empty:
+        points_mode = 'all' if show_outliers else False
         fig = px.box(
             df,
             x=category_col,
             y=value_col,
-            points="all",
+            points=points_mode,
             title=f"{category_col}ごとの{value_col}の箱ひげ図"
         )
         fig.update_layout(
@@ -136,27 +138,26 @@ def main():
                     # 箱ひげ図 1：業種大分類 ごと
                     st.subheader("箱ひげ図 1：業種大分類")
                     value_col_main = st.selectbox("数値項目を選択してください", numeric_columns, key="boxplot1_value")
+                    show_outliers_main = st.checkbox("外れ値を表示", value=True, key="outliers_main")
                     if value_col_main:
-                        create_boxplot(filtered_df, value_col_main, "業種大分類")
+                        create_boxplot(filtered_df, value_col_main, "業種大分類", show_outliers=show_outliers_main)
 
                 with col_box2:
                     # 箱ひげ図 2：業種中分類 ごと
                     st.subheader("箱ひげ図 2：業種中分類")
                     value_col_sub = st.selectbox("数値項目を選択してください", numeric_columns, key="boxplot2_value")
+                    show_outliers_sub = st.checkbox("外れ値を表示", value=True, key="outliers_sub")
                     if value_col_sub:
-                        create_boxplot(filtered_df, value_col_sub, "業種中分類")
+                        create_boxplot(filtered_df, value_col_sub, "業種中分類", show_outliers=show_outliers_sub)
 
             else:
                 st.warning("箱ひげ図を作成できる数値項目が見つかりません。")
 
             # 数値データの要約統計量
             st.header("数値データの要約統計量")
-            # Display describe only for the column selected in the first boxplot
-            if value_col_main and value_col_main in filtered_df.columns:
-                 st.write(f"**選択項目: {value_col_main}**")
-                 st.dataframe(filtered_df[value_col_main].describe())
-            elif numeric_columns:
-                 st.info(f"'箱ひげ図 1' で数値項目を選択してください。")
+            # Display describe for all numerical columns
+            if numeric_columns:
+                 st.dataframe(filtered_df[numeric_columns].describe())
             else:
                  st.info("要約統計量を表示できる数値データがありません。")
 
