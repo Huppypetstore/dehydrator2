@@ -122,8 +122,8 @@ def main():
             )
             create_summary_chart(filtered_df, chart_type)
 
-            # 数値分析（箱ひげ図）
-            st.header("数値分析（箱ひげ図）")
+            # 数値分析（箱ひげ図と要約統計量）
+            st.header("数値分析（箱ひげ図と要約統計量）")
             numeric_columns = filtered_df.select_dtypes(include='number').columns.tolist()
 
             # Initialize selected value variables
@@ -131,7 +131,7 @@ def main():
             value_col_sub = None
 
             if numeric_columns:
-                # 2つの列を作成して箱ひげ図を並列配置
+                # 2つの列を作成して箱ひげ図と要約統計量を並列配置
                 col_box1, col_box2 = st.columns(2)
 
                 with col_box1:
@@ -141,6 +141,14 @@ def main():
                     show_outliers_main = st.checkbox("外れ値を表示", value=True, key="outliers_main")
                     if value_col_main:
                         create_boxplot(filtered_df, value_col_main, "業種大分類", show_outliers=show_outliers_main)
+                        
+                        # 要約統計量：業種大分類ごと
+                        st.subheader(f"業種大分類ごとの {value_col_main} の要約統計量")
+                        try:
+                            grouped_stats_main = filtered_df.groupby("業種大分類")[value_col_main].describe()
+                            st.dataframe(grouped_stats_main)
+                        except Exception as e:
+                            st.error(f"業種大分類ごとの要約統計量の計算中にエラーが発生しました: {str(e)}")
 
                 with col_box2:
                     # 箱ひげ図 2：業種中分類 ごと
@@ -150,39 +158,16 @@ def main():
                     if value_col_sub:
                         create_boxplot(filtered_df, value_col_sub, "業種中分類", show_outliers=show_outliers_sub)
 
+                        # 要約統計量：業種中分類ごと
+                        st.subheader(f"業種中分類ごとの {value_col_sub} の要約統計量")
+                        try:
+                            grouped_stats_sub = filtered_df.groupby("業種中分類")[value_col_sub].describe()
+                            st.dataframe(grouped_stats_sub)
+                        except Exception as e:
+                            st.error(f"業種中分類ごとの要約統計量の計算中にエラーが発生しました: {str(e)}")
+
             else:
-                st.warning("箱ひげ図を作成できる数値項目が見つかりません。")
-
-            # 数値データの要約統計量 (業種ごと)
-            st.header("数値データの要約統計量 (業種ごと)")
-            if not filtered_df.empty and numeric_columns:
-                # グループ化するカテゴリを選択
-                groupby_col_describe = st.radio(
-                    "要約統計量を計算するグループを選択してください:",
-                    ["業種大分類", "業種中分類"],
-                    key="describe_groupby"
-                )
-                
-                # 要約統計量を表示する数値項目を選択
-                selected_describe_col = st.selectbox(
-                    "要約統計量を表示する数値項目を選択してください",
-                    numeric_columns,
-                    key="describe_value_groupby"
-                )
-
-                if selected_describe_col:
-                     st.write(f"**{groupby_col_describe}ごとの {selected_describe_col} の要約統計量**")
-                     try:
-                         # グループ化して要約統計量を計算
-                         grouped_stats = filtered_df.groupby(groupby_col_describe)[selected_describe_col].describe()
-                         st.dataframe(grouped_stats)
-                     except Exception as e:
-                         st.error(f"要約統計量の計算中にエラーが発生しました: {str(e)}")
-            elif not numeric_columns:
-                 st.info("要約統計量を表示できる数値データがありません。")
-            else:
-                 st.info("要約統計量を表示するにはデータをアップロードしてください。")
-
+                st.warning("箱ひげ図と要約統計量を作成できる数値項目が見つかりません。")
 
             # フィルター後のデータ
             st.header("フィルター後のデータ")
