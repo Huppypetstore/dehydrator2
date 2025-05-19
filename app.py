@@ -124,6 +124,10 @@ def main():
             st.header("数値分析（箱ひげ図）")
             numeric_columns = filtered_df.select_dtypes(include='number').columns.tolist()
 
+            # Initialize selected value variables
+            value_col_main = None
+            value_col_sub = None
+
             if numeric_columns:
                 # 2つの列を作成して箱ひげ図を並列配置
                 col_box1, col_box2 = st.columns(2)
@@ -132,23 +136,29 @@ def main():
                     # 箱ひげ図 1：業種大分類 ごと
                     st.subheader("箱ひげ図 1：業種大分類")
                     value_col_main = st.selectbox("数値項目を選択してください", numeric_columns, key="boxplot1_value")
-                    create_boxplot(filtered_df, value_col_main, "業種大分類")
+                    if value_col_main:
+                        create_boxplot(filtered_df, value_col_main, "業種大分類")
 
                 with col_box2:
                     # 箱ひげ図 2：業種中分類 ごと
                     st.subheader("箱ひげ図 2：業種中分類")
                     value_col_sub = st.selectbox("数値項目を選択してください", numeric_columns, key="boxplot2_value")
-                    create_boxplot(filtered_df, value_col_sub, "業種中分類")
+                    if value_col_sub:
+                        create_boxplot(filtered_df, value_col_sub, "業種中分類")
 
             else:
                 st.warning("箱ひげ図を作成できる数値項目が見つかりません。")
 
             # 数値データの要約統計量
             st.header("数値データの要約統計量")
-            if numeric_columns:
-                st.dataframe(filtered_df[numeric_columns].describe())
+            # Display describe only for the column selected in the first boxplot
+            if value_col_main and value_col_main in filtered_df.columns:
+                 st.write(f"**選択項目: {value_col_main}**")
+                 st.dataframe(filtered_df[value_col_main].describe())
+            elif numeric_columns:
+                 st.info(f"'箱ひげ図 1' で数値項目を選択してください。")
             else:
-                st.info("要約統計量を表示できる数値データがありません。")
+                 st.info("要約統計量を表示できる数値データがありません。")
 
             # フィルター後のデータ
             st.header("フィルター後のデータ")
