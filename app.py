@@ -1,7 +1,6 @@
 import streamlit as st
 import pandas as pd
 import plotly.express as px
-import plotly.graph_objects as go
 from typing import List, Dict
 
 # Define constants for the categories
@@ -34,176 +33,82 @@ def load_and_process_data(uploaded_file) -> pd.DataFrame:
         st.error(f"エラーが発生しました: {str(e)}")
         return None
 
-def create_order_status_chart(df: pd.DataFrame) -> None:
-    """Create and display a bar chart for order status."""
+def create_boxplot(df: pd.DataFrame, value_col: str) -> None:
+    """Create and display a boxplot for the specified value column, grouped by main and sub categories."""
     if df is not None and not df.empty:
-        summary = df['受注の有無'].value_counts().reset_index()
-        summary.columns = ['受注の有無', '件数']
-        
-        fig = px.bar(
-            summary,
-            x='受注の有無',
-            y='件数',
-            title='受注の有無別の件数',
-            labels={'受注の有無': '', '件数': '件数'}
-        )
-        fig.update_layout(height=400)
-        st.plotly_chart(fig, use_container_width=True)
-
-def create_category_chart(df: pd.DataFrame, category: str) -> None:
-    """Create and display a bar chart for the specified category."""
-    if df is not None and not df.empty:
-        summary = df[category].value_counts().reset_index()
-        summary.columns = [category, '件数']
-        
-        fig = px.bar(
-            summary,
-            x=category,
-            y='件数',
-            title=f'{category}別の件数',
-            labels={category: '', '件数': '件数'}
+        fig = px.box(
+            df,
+            x="業種大分類",
+            y=value_col,
+            color="業種中分類",
+            points="all",
+            title=f"業種大分類×業種中分類ごとの{value_col}の箱ひげ図"
         )
         fig.update_layout(
             xaxis_tickangle=-45,
-            height=500
+            height=600
         )
         st.plotly_chart(fig, use_container_width=True)
-
-def create_value_distribution_chart(df: pd.DataFrame, category: str, value_column: str) -> None:
-    """Create and display a detailed distribution chart combining violin and box plots."""
-    if df is not None and not df.empty and value_column in df.columns:
-        # Calculate statistics for each category
-        stats = df.groupby(category)[value_column].agg(['min', 'max', 'mean', 'median']).round(2)
-        
-        # Create figure
-        fig = go.Figure()
-
-        # Add violin plot
-        fig.add_trace(go.Violin(
-            x=df[category],
-            y=df[value_column],
-            name=value_column,
-            box_visible=True,
-            meanline_visible=True,
-            points="outliers"
-        ))
-
-        # Add statistics as annotations
-        annotations = []
-        for idx, row in stats.iterrows():
-            annotation_text = (
-                f"最小値: {row['min']}<br>"
-                f"最大値: {row['max']}<br>"
-                f"平均値: {row['mean']}<br>"
-                f"中央値: {row['median']}"
-            )
-            annotations.append(dict(
-                x=idx,
-                y=row['max'],
-                text=annotation_text,
-                showarrow=True,
-                arrowhead=4,
-                ax=0,
-                ay=-40
-            ))
-
-        # Update layout
-        fig.update_layout(
-            title=f'{category}別の{value_column}分布',
-            xaxis_title='',
-            yaxis_title=value_column,
-            xaxis_tickangle=-45,
-            height=600,
-            showlegend=False,
-            annotations=annotations
-        )
-
-        # Display plot and statistics
-        st.plotly_chart(fig, use_container_width=True)
-        st.write("### 統計情報")
-        st.dataframe(stats.style.format("{:.2f}"))
-
-def get_numeric_columns(df: pd.DataFrame) -> List[str]:
-    """Get list of numeric columns from dataframe."""
-    return df.select_dtypes(include=['float64', 'int64']).columns.tolist()
 
 def main():
     st.set_page_config(page_title="顧客情報分析", layout="wide")
     st.title("顧客情報分析システム")
 
-    # File upload
     uploaded_file = st.file_uploader("Excelファイルをアップロードしてください", type=['xlsx', 'xls'])
 
     if uploaded_file is not None:
         df = load_and_process_data(uploaded_file)
         
         if df is not None:
-            # Section 1: Order Status Analysis
-            st.header("1. 受注の有無分析")
-            order_status = st.multiselect(
-                "受注の有無を選択",
-                options=[True, False],
-                default=[True, False]
-            )
-            filtered_df = df[df['受注の有無'].isin(order_status)]
-            create_order_status_chart(filtered_df)
-
-            # Section 2: Category Analysis
-            st.header("2. 業種分類分析")
-            col1, col2 = st.columns(2)
+            st.subheader("フィルター設定")
+            
+            col1, col2, col3 = st.columns(3)
             
             with col1:
+                order_status = st.multiselect(
+                    "受注の有無",
+                    options=[True, False],
+                    default=[True, False]
+                )
+
+            with col2:
                 selected_main_categories = st.multiselect(
-                    "業種大分類を選択",
+                    "業種大分類",
                     options=MAIN_CATEGORIES,
                     default=[]
                 )
-                if selected_main_categories:
-                    filtered_df = filtered_df[filtered_df['業種大分類'].isin(selected_main_categories)]
-                create_category_chart(filtered_df, '業種大分類')
 
-            with col2:
+            with col3:
                 selected_sub_categories = st.multiselect(
-                    "業種中分類を選択",
+                    "業種中分類",
                     options=SUB_CATEGORIES,
                     default=[]
                 )
-                if selected_sub_categories:
-                    filtered_df = filtered_df[filtered_df['業種中分類'].isin(selected_sub_categories)]
-                create_category_chart(filtered_df, '業種中分類')
 
-            # Section 3: Value Distribution Analysis
-            st.header("3. 数値分布分析")
+            filtered_df = df.copy()
             
-            # Get numeric columns
-            numeric_columns = get_numeric_columns(df)
+            if order_status:
+                filtered_df = filtered_df[filtered_df['受注の有無'].isin(order_status)]
             
+            if selected_main_categories:
+                filtered_df = filtered_df[filtered_df['業種大分類'].isin(selected_main_categories)]
+            
+            if selected_sub_categories:
+                filtered_df = filtered_df[filtered_df['業種中分類'].isin(selected_sub_categories)]
+
+            st.subheader("分析結果")
+            st.write(f"フィルター適用後の総件数: {len(filtered_df)}")
+
+            st.subheader("箱ひげ図（業種大分類×業種中分類）")
+            numeric_columns = filtered_df.select_dtypes(include='number').columns.tolist()
             if numeric_columns:
-                # Determine which category to use based on selections
-                category_to_use = '業種中分類' if selected_sub_categories else '業種大分類'
-                
-                col3, col4 = st.columns(2)
-                with col3:
-                    selected_value_column1 = st.selectbox(
-                        "分析する数値列を選択 (1)",
-                        options=numeric_columns,
-                        key="value_column1"
-                    )
-                    create_value_distribution_chart(filtered_df, category_to_use, selected_value_column1)
-
-                with col4:
-                    selected_value_column2 = st.selectbox(
-                        "分析する数値列を選択 (2)",
-                        options=numeric_columns,
-                        key="value_column2"
-                    )
-                    create_value_distribution_chart(filtered_df, category_to_use, selected_value_column2)
+                value_col = st.selectbox("箱ひげ図に使う数値項目を選択してください", numeric_columns)
+                create_boxplot(filtered_df, value_col)
             else:
-                st.warning("数値データを含む列が見つかりませんでした。")
+                st.warning("数値項目が見つかりません。")
 
-            # Display filtered data
-            st.header("フィルター後のデータ")
+            st.subheader("フィルター後のデータ")
             st.dataframe(filtered_df)
 
 if __name__ == "__main__":
-    main() 
+    main()
