@@ -33,6 +33,25 @@ def load_and_process_data(uploaded_file) -> pd.DataFrame:
         st.error(f"エラーが発生しました: {str(e)}")
         return None
 
+def create_summary_chart(df: pd.DataFrame, group_by: str) -> None:
+    """Create and display a bar chart for the specified grouping (count)."""
+    if df is not None and not df.empty:
+        summary = df[group_by].value_counts().reset_index()
+        summary.columns = [group_by, '件数']
+        
+        fig = px.bar(
+            summary,
+            x=group_by,
+            y='件数',
+            title=f'{group_by}別の件数',
+            labels={group_by: '', '件数': '件数'}
+        )
+        fig.update_layout(
+            xaxis_tickangle=-45,
+            height=500
+        )
+        st.plotly_chart(fig, use_container_width=True)
+
 def create_boxplot(df: pd.DataFrame, value_col: str) -> None:
     """Create and display a boxplot for the specified value column, grouped by main and sub categories."""
     if df is not None and not df.empty:
@@ -51,33 +70,31 @@ def create_boxplot(df: pd.DataFrame, value_col: str) -> None:
         st.plotly_chart(fig, use_container_width=True)
 
 def main():
-    st.set_page_config(page_title="顧客情報分析", layout="wide")
-    st.title("顧客情報分析システム")
+    st.set_page_config(page_title="引き合い情報分析 APP", layout="wide")
+    st.title("📊 引き合い情報分析 APP")
 
+    # ファイルアップロード
     uploaded_file = st.file_uploader("Excelファイルをアップロードしてください", type=['xlsx', 'xls'])
 
     if uploaded_file is not None:
         df = load_and_process_data(uploaded_file)
         
         if df is not None:
-            st.subheader("フィルター設定")
-            
+            # フィルター設定
+            st.header("フィルター設定")
             col1, col2, col3 = st.columns(3)
-            
             with col1:
                 order_status = st.multiselect(
                     "受注の有無",
                     options=[True, False],
                     default=[True, False]
                 )
-
             with col2:
                 selected_main_categories = st.multiselect(
                     "業種大分類",
                     options=MAIN_CATEGORIES,
                     default=[]
                 )
-
             with col3:
                 selected_sub_categories = st.multiselect(
                     "業種中分類",
@@ -86,30 +103,37 @@ def main():
                 )
 
             filtered_df = df.copy()
-            
             if order_status:
                 filtered_df = filtered_df[filtered_df['受注の有無'].isin(order_status)]
-            
             if selected_main_categories:
                 filtered_df = filtered_df[filtered_df['業種大分類'].isin(selected_main_categories)]
-            
             if selected_sub_categories:
                 filtered_df = filtered_df[filtered_df['業種中分類'].isin(selected_sub_categories)]
 
-            st.subheader("分析結果")
+            # 分析結果（件数）
+            st.header("分析結果")
             st.write(f"フィルター適用後の総件数: {len(filtered_df)}")
 
-            st.subheader("箱ひげ図（業種大分類×業種中分類）")
+            st.subheader("件数グラフ")
+            chart_type = st.radio(
+                "グラフの種類を選択してください:",
+                ["業種大分類", "業種中分類", "受注の有無"]
+            )
+            create_summary_chart(filtered_df, chart_type)
+
+            # 数値分析（箱ひげ図）
+            st.header("数値分析（箱ひげ図）")
             numeric_columns = filtered_df.select_dtypes(include='number').columns.tolist()
             if numeric_columns:
                 value_col = st.selectbox("箱ひげ図に使う数値項目を選択してください", numeric_columns)
                 create_boxplot(filtered_df, value_col)
             else:
-                st.warning("数値項目が見つかりません。")
+                st.warning("箱ひげ図を作成できる数値項目が見つかりません。")
 
-            st.subheader("フィルター後のデータ")
+            # フィルター後のデータ
+            st.header("フィルター後のデータ")
             st.dataframe(filtered_df)
 
 if __name__ == "__main__":
-    main()
+    main() 
 
