@@ -155,9 +155,12 @@ def main():
 
             # 数値データの要約統計量
             st.header("数値データの要約統計量")
-            # Display describe for all numerical columns
+            # Display describe for a selected numerical column
             if numeric_columns:
-                 st.dataframe(filtered_df[numeric_columns].describe())
+                selected_describe_col = st.selectbox("要約統計量を表示する数値項目を選択してください", numeric_columns, key="describe_value")
+                if selected_describe_col:
+                     st.write(f"**選択項目: {selected_describe_col} の要約統計量**")
+                     st.dataframe(filtered_df[selected_describe_col].describe())
             else:
                  st.info("要約統計量を表示できる数値データがありません。")
 
