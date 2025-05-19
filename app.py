@@ -125,15 +125,20 @@ def main():
             numeric_columns = filtered_df.select_dtypes(include='number').columns.tolist()
 
             if numeric_columns:
-                # 箱ひげ図 1：業種大分類 ごと
-                st.subheader("箱ひげ図 1：業種大分類")
-                value_col_main = st.selectbox("箱ひげ図 1 に使う数値項目を選択してください", numeric_columns, key="boxplot1_value")
-                create_boxplot(filtered_df, value_col_main, "業種大分類")
+                # 2つの列を作成して箱ひげ図を並列配置
+                col_box1, col_box2 = st.columns(2)
 
-                # 箱ひげ図 2：業種中分類 ごと
-                st.subheader("箱ひげ図 2：業種中分類")
-                value_col_sub = st.selectbox("箱ひげ図 2 に使う数値項目を選択してください", numeric_columns, key="boxplot2_value")
-                create_boxplot(filtered_df, value_col_sub, "業種中分類")
+                with col_box1:
+                    # 箱ひげ図 1：業種大分類 ごと
+                    st.subheader("箱ひげ図 1：業種大分類")
+                    value_col_main = st.selectbox("数値項目を選択してください", numeric_columns, key="boxplot1_value")
+                    create_boxplot(filtered_df, value_col_main, "業種大分類")
+
+                with col_box2:
+                    # 箱ひげ図 2：業種中分類 ごと
+                    st.subheader("箱ひげ図 2：業種中分類")
+                    value_col_sub = st.selectbox("数値項目を選択してください", numeric_columns, key="boxplot2_value")
+                    create_boxplot(filtered_df, value_col_sub, "業種中分類")
 
             else:
                 st.warning("箱ひげ図を作成できる数値項目が見つかりません。")
@@ -144,4 +149,3 @@ def main():
 
 if __name__ == "__main__":
     main() 
-
