@@ -153,16 +153,36 @@ def main():
             else:
                 st.warning("箱ひげ図を作成できる数値項目が見つかりません。")
 
-            # 数値データの要約統計量
-            st.header("数値データの要約統計量")
-            # Display describe for a selected numerical column
-            if numeric_columns:
-                selected_describe_col = st.selectbox("要約統計量を表示する数値項目を選択してください", numeric_columns, key="describe_value")
+            # 数値データの要約統計量 (業種ごと)
+            st.header("数値データの要約統計量 (業種ごと)")
+            if not filtered_df.empty and numeric_columns:
+                # グループ化するカテゴリを選択
+                groupby_col_describe = st.radio(
+                    "要約統計量を計算するグループを選択してください:",
+                    ["業種大分類", "業種中分類"],
+                    key="describe_groupby"
+                )
+                
+                # 要約統計量を表示する数値項目を選択
+                selected_describe_col = st.selectbox(
+                    "要約統計量を表示する数値項目を選択してください",
+                    numeric_columns,
+                    key="describe_value_groupby"
+                )
+
                 if selected_describe_col:
-                     st.write(f"**選択項目: {selected_describe_col} の要約統計量**")
-                     st.dataframe(filtered_df[selected_describe_col].describe())
-            else:
+                     st.write(f"**{groupby_col_describe}ごとの {selected_describe_col} の要約統計量**")
+                     try:
+                         # グループ化して要約統計量を計算
+                         grouped_stats = filtered_df.groupby(groupby_col_describe)[selected_describe_col].describe()
+                         st.dataframe(grouped_stats)
+                     except Exception as e:
+                         st.error(f"要約統計量の計算中にエラーが発生しました: {str(e)}")
+            elif not numeric_columns:
                  st.info("要約統計量を表示できる数値データがありません。")
+            else:
+                 st.info("要約統計量を表示するにはデータをアップロードしてください。")
+
 
             # フィルター後のデータ
             st.header("フィルター後のデータ")
