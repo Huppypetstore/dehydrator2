@@ -142,8 +142,10 @@ def main():
                     if value_col_main:
                         create_boxplot(filtered_df, value_col_main, "業種大分類", show_outliers=show_outliers_main)
                         
+                        st.markdown("---") # 区切り線を追加
+                        
                         # 要約統計量：業種大分類ごと
-                        st.subheader(f"業種大分類ごとの {value_col_main} の要約統計量")
+                        st.subheader(f"📊 {value_col_main} の要約統計量 (業種大分類別)")
                         try:
                             grouped_stats_main = filtered_df.groupby("業種大分類")[value_col_main].describe()
                             st.dataframe(grouped_stats_main)
@@ -158,8 +160,10 @@ def main():
                     if value_col_sub:
                         create_boxplot(filtered_df, value_col_sub, "業種中分類", show_outliers=show_outliers_sub)
 
+                        st.markdown("---") # 区切り線を追加
+                        
                         # 要約統計量：業種中分類ごと
-                        st.subheader(f"業種中分類ごとの {value_col_sub} の要約統計量")
+                        st.subheader(f"📊 {value_col_sub} の要約統計量 (業種中分類別)")
                         try:
                             grouped_stats_sub = filtered_df.groupby("業種中分類")[value_col_sub].describe()
                             st.dataframe(grouped_stats_sub)
